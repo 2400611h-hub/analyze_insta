@@ -1,0 +1,225 @@
+<title>インスタ空きテーマ分析</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: 左に入力と結論（空きテーマ上位）、下に ジャンル×地域 のヒートマップ。港町の藍と夕焼け橙。 */
+:root{
+  --bg:#f3f5f7; --panel:#ffffff; --ink:#15222e; --muted:#5b6b78; --line:#d6dee5;
+  --accent:#0e5a8a; --warm:#e0702a; --heat:#0e5a8a; --done:#9aa7b2;
+  --f-display:"Dela Gothic One","Zen Kaku Gothic New",sans-serif;
+  --f-body:"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e161d; --panel:#16222c; --ink:#e6edf2; --muted:#93a4b1; --line:#2a3a47;
+  --accent:#5fb0e6; --warm:#f08a45; --heat:#4aa3e0; --done:#56656f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e161d; --panel:#16222c; --ink:#e6edf2; --muted:#93a4b1; --line:#2a3a47;
+  --accent:#5fb0e6; --warm:#f08a45; --heat:#4aa3e0; --done:#56656f; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6}
+.wrap{max-width:1180px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:24px}
+h1{font-family:var(--f-display);font-weight:400;font-size:clamp(24px,4vw,34px);margin:0;letter-spacing:.02em;text-wrap:balance}
+h2{font-size:17px;margin:0;font-weight:700}
+.lead{color:var(--muted);margin:6px 0 0;max-width:62ch}
+.tag{display:inline-block;font-size:12px;letter-spacing:.06em;color:var(--warm);border:1px solid var(--warm);border-radius:999px;padding:1px 10px;margin-left:8px;vertical-align:middle}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:24px}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;display:grid;gap:14px;min-width:0}
+label.f{font-size:13px;color:var(--muted);display:grid;gap:4px}
+textarea{width:100%;box-sizing:border-box;min-height:96px;font-family:var(--f-num);font-size:12px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:8px;resize:vertical}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button,select{font:inherit;font-size:13px;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:6px 12px;cursor:pointer}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--warm);outline-offset:2px}
+input[type=file]{font-size:12px;max-width:100%}
+.msg{font-size:13px;color:var(--muted);min-height:1.2em}
+ol.rank{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+ol.rank li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:8px;cursor:pointer}
+ol.rank li:hover{border-color:var(--accent)}
+.rk{font-family:var(--f-num);color:var(--warm);font-weight:500}
+.rt{font-weight:700}
+.rs{font-size:12px;color:var(--muted)}
+.er{font-family:var(--f-num);font-variant-numeric:tabular-nums;font-size:15px;color:var(--accent)}
+.scroll{overflow-x:auto}
+table.heat{border-collapse:separate;border-spacing:3px;font-size:12px;min-width:640px}
+table.heat th{font-weight:500;color:var(--muted);padding:4px 6px;text-align:left;white-space:nowrap}
+table.heat thead th{text-align:center}
+table.heat td{width:72px;height:44px;border-radius:5px;text-align:center;font-family:var(--f-num);font-variant-numeric:tabular-nums;cursor:pointer;position:relative;border:1px solid transparent}
+table.heat td.empty{color:var(--muted);background:transparent;border:1px dashed var(--line);cursor:default}
+table.heat td.done{background:repeating-linear-gradient(135deg,transparent 0 5px,color-mix(in srgb,var(--done) 35%,transparent) 5px 7px)!important;color:var(--muted)}
+table.heat td.sel{border-color:var(--warm)}
+td small{display:block;font-size:10px;opacity:.75}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);align-items:center}
+.sw{display:inline-block;width:16px;height:12px;border-radius:3px;vertical-align:middle;margin-right:4px}
+.detail table{width:100%;border-collapse:collapse;font-size:13px}
+.detail th,.detail td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+.detail td.n{font-family:var(--f-num);text-align:right;font-variant-numeric:tabular-nums}
+.note{font-size:12px;color:var(--muted)}
+code{font-family:var(--f-num);font-size:12px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>インスタ空きテーマ分析</h1>
+    <p class="lead">他アカウントで反応が良いのに、自分たちはまだ投稿していない「ジャンル × 地域」を探します。指標はエンゲージメント率＝(いいね＋コメント＋保存)÷フォロワー数。</p>
+  </header>
+
+  <div class="grid">
+    <section class="panel" aria-labelledby="in-h">
+      <h2 id="in-h">データ <span class="tag" id="sampleTag">サンプル表示中</span></h2>
+      <p class="note">列: <code>account,date,genre,region,format,likes,comments,saves,followers,caption</code>（saves は空欄可）。CSVを貼るかファイルを選んで「分析する」。</p>
+      <label class="f" for="othersCsv">他アカウントの投稿
+        <textarea id="othersCsv" spellcheck="false"></textarea>
+      </label>
+      <input type="file" id="othersFile" accept=".csv,text/csv" aria-label="他アカウントのCSVファイル">
+      <label class="f" for="mineCsv">自分たちの投稿済み
+        <textarea id="mineCsv" spellcheck="false"></textarea>
+      </label>
+      <input type="file" id="mineFile" accept=".csv,text/csv" aria-label="自分たちのCSVファイル">
+      <div class="row">
+        <button class="primary" id="run">分析する</button>
+        <button id="copyTpl">テンプレをコピー</button>
+        <button id="loadSample">サンプルに戻す</button>
+      </div>
+      <div class="msg" id="msg" role="status"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="rank-h">
+      <div class="row" style="justify-content:space-between">
+        <h2 id="rank-h">まだ投稿していない人気テーマ</h2>
+        <div class="row">
+          <label class="note" for="fmt">形式</label>
+          <select id="fmt"><option value="">すべて</option></select>
+          <label class="note" for="minN">最低件数</label>
+          <select id="minN"><option>1</option><option selected>2</option><option>3</option><option>5</option></select>
+        </div>
+      </div>
+      <ol class="rank" id="rank"></ol>
+      <p class="note" id="rankNote"></p>
+    </section>
+  </div>
+
+  <section class="panel" aria-labelledby="heat-h">
+    <h2 id="heat-h">ジャンル × 地域（他アカウントの平均エンゲージメント率）</h2>
+    <div class="legend">
+      <span><span class="sw" style="background:color-mix(in srgb,var(--heat) 15%,transparent)"></span>低</span>
+      <span><span class="sw" style="background:var(--heat)"></span>高</span>
+      <span><span class="sw" style="background:repeating-linear-gradient(135deg,transparent 0 3px,var(--done) 3px 5px)"></span>自分たちが投稿済み</span>
+      <span>セルの小さい数字＝投稿件数。クリックで投稿一覧。</span>
+    </div>
+    <div class="scroll"><table class="heat" id="heat"></table></div>
+  </section>
+
+  <section class="panel detail" aria-labelledby="det-h" id="detail" hidden>
+    <h2 id="det-h"></h2>
+    <div class="scroll"><table id="detTable"></table></div>
+  </section>
+</div>
+
+<script>
+const HEAD="account,date,genre,region,format,likes,comments,saves,followers,caption";
+const $=id=>document.getElementById(id);
+
+function sample(){
+  // 例示用の架空データ（実在アカウントの数値ではありません）
+  let s=7;const r=()=>(s=(s*16807)%2147483647)/2147483647;
+  const accts=[["sample_a",42000],["sample_b",18000],["sample_c",26000],["sample_d",35000],["sample_e",9000],["sample_f",21000]];
+  const genres=["グルメ","カフェ","絶景・自然","歴史・寺社","イベント","体験","宿泊"];
+  const regions=["神戸","姫路","淡路","明石","丹波篠山","城崎・豊岡","西宮・芦屋"];
+  const fmts=["リール","カルーセル","画像"];
+  const boost={"淡路|絶景・自然":2.2,"丹波篠山|グルメ":1.9,"城崎・豊岡|宿泊":1.8,"明石|グルメ":1.6,"姫路|歴史・寺社":1.5,"淡路|カフェ":1.7,"神戸|カフェ":1.2,"西宮・芦屋|カフェ":1.4,"丹波篠山|体験":1.6};
+  const fb={"リール":1.4,"カルーセル":1.2,"画像":0.8};
+  const rows=[HEAD];
+  for(let i=0;i<160;i++){
+    const a=accts[Math.floor(r()*accts.length)],g=genres[Math.floor(r()*genres.length)],re=regions[Math.floor(r()*regions.length)],f=fmts[Math.floor(r()*3)];
+    const base=0.025*(boost[re+"|"+g]||1)*fb[f]*(0.6+r()*0.8);
+    const tot=Math.round(a[1]*base),likes=Math.round(tot*0.8),com=Math.round(tot*0.05),sav=tot-likes-com;
+    const m=1+Math.floor(r()*9),d=1+Math.floor(r()*28);
+    rows.push([a[0],`2026-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`,g,re,f,likes,com,sav,a[1],`${re}の${g}`].join(","));
+  }
+  const mine=[HEAD,
+   "my_account,2026-05-02,グルメ,神戸,リール,820,31,140,12000,南京町食べ歩き",
+   "my_account,2026-05-20,カフェ,神戸,カルーセル,640,18,210,12000,北野のカフェ",
+   "my_account,2026-06-11,歴史・寺社,姫路,リール,910,22,120,12000,姫路城",
+   "my_account,2026-07-08,絶景・自然,淡路,リール,1500,40,380,12000,淡路の海",
+   "my_account,2026-08-15,イベント,神戸,画像,300,9,30,12000,みなと神戸花火",
+   "my_account,2026-09-03,宿泊,城崎・豊岡,カルーセル,700,20,260,12000,城崎の宿"];
+  return [rows.join("\n"),mine.join("\n")];
+}
+
+function parseCSV(t){
+  const out=[];let row=[],f="",q=false;
+  for(let i=0;i<t.length;i++){const c=t[i];
+    if(q){if(c=='"'){if(t[i+1]=='"'){f+='"';i++}else q=false}else f+=c}
+    else if(c=='"')q=true;else if(c==","){row.push(f);f=""}
+    else if(c=="\n"||c=="\r"){if(c=="\r"&&t[i+1]=="\n")i++;row.push(f);f="";if(row.some(x=>x.trim()!==""))out.push(row);row=[]}
+    else f+=c}
+  row.push(f);if(row.some(x=>x.trim()!==""))out.push(row);
+  if(!out.length)return [];
+  const h=out[0].map(x=>x.trim().toLowerCase());
+  return out.slice(1).map(r=>{const o={};h.forEach((k,i)=>o[k]=(r[i]||"").trim());return o});
+}
+const num=v=>{const n=parseFloat(String(v).replace(/,/g,""));return isFinite(n)?n:0};
+function er(p){const fo=num(p.followers);return fo>0?(num(p.likes)+num(p.comments)+num(p.saves))/fo:null}
+const pct=v=>(v*100).toFixed(2)+"%";
+
+let others=[],mine=[],sel=null;
+
+function analyze(){
+  const o=parseCSV($("othersCsv").value),m=parseCSV($("mineCsv").value);
+  const need=["genre","region","likes","followers"];
+  const miss=need.filter(k=>!(o[0]&&k in o[0]));
+  if(!o.length){$("msg").textContent="他アカウントの投稿が空です。CSVを貼るかファイルを選んでください。";return}
+  if(miss.length){$("msg").textContent=`他アカウントのCSVに列 ${miss.join(", ")} がありません。1行目の見出しを確認してください。`;return}
+  others=o.filter(p=>p.genre&&p.region&&er(p)!==null);mine=m.filter(p=>p.genre&&p.region);
+  const fmts=[...new Set(others.map(p=>p.format).filter(Boolean))];
+  const cur=$("fmt").value;$("fmt").innerHTML='<option value="">すべて</option>'+fmts.map(f=>`<option${f===cur?" selected":""}>${esc(f)}</option>`).join("");
+  $("msg").textContent=`他アカウント ${others.length} 件、自分たち ${mine.length} 件を分析しました。`;
+  render();
+}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function render(){
+  const fmt=$("fmt").value,minN=+$("minN").value;
+  const list=others.filter(p=>!fmt||p.format===fmt);
+  const done=new Set(mine.map(p=>p.genre+"|"+p.region));
+  const cells={};list.forEach(p=>{const k=p.genre+"|"+p.region;(cells[k]=cells[k]||[]).push(p)});
+  const genres=[...new Set(others.map(p=>p.genre))],regions=[...new Set(others.map(p=>p.region))];
+  const stat=k=>{const a=cells[k]||[];return{n:a.length,avg:a.length?a.reduce((s,p)=>s+er(p),0)/a.length:0}};
+  const all=Object.keys(cells).map(k=>({k,...stat(k)}));
+  const max=Math.max(...all.map(x=>x.avg),0.0001);
+
+  const gaps=all.filter(x=>!done.has(x.k)&&x.n>=minN).sort((a,b)=>b.avg-a.avg).slice(0,6);
+  const overall=list.length?list.reduce((s,p)=>s+er(p),0)/list.length:0;
+  $("rank").innerHTML=gaps.length?gaps.map((x,i)=>{const[g,r]=x.k.split("|");
+    return `<li data-k="${esc(x.k)}" tabindex="0"><span class="rk">${i+1}</span><span><span class="rt">${esc(r)} × ${esc(g)}</span><br><span class="rs">${x.n}件・全体平均の ${(x.avg/overall).toFixed(1)} 倍</span></span><span class="er">${pct(x.avg)}</span></li>`}).join("")
+    :'<li style="cursor:default"><span></span><span class="rs">条件に合う空きテーマがありません。最低件数を下げてみてください。</span><span></span></li>';
+  $("rankNote").textContent=`全体平均 ${pct(overall)}${fmt?"（"+fmt+"のみ）":""}。投稿済みの組み合わせは除外しています。`;
+
+  let h="<thead><tr><th></th>"+regions.map(r=>`<th scope="col">${esc(r)}</th>`).join("")+"</tr></thead><tbody>";
+  genres.forEach(g=>{h+=`<tr><th scope="row">${esc(g)}</th>`;regions.forEach(r=>{const k=g+"|"+r,s=stat(k);
+    if(!s.n){h+=`<td class="empty${done.has(k)?" done":""}">–</td>`;return}
+    const a=Math.round(12+88*s.avg/max);const light=a<55;
+    h+=`<td data-k="${esc(k)}" tabindex="0" class="${done.has(k)?"done":""}${sel===k?" sel":""}" style="background:color-mix(in srgb,var(--heat) ${a}%,transparent);color:${light?"var(--ink)":"#fff"}" title="${esc(r)} × ${esc(g)}">${pct(s.avg)}<small>${s.n}件${done.has(k)?"・済":""}</small></td>`});h+="</tr>"});
+  $("heat").innerHTML=h+"</tbody>";
+  if(sel)showDetail(sel,cells);
+  window._cells=cells;
+}
+function showDetail(k,cells){
+  sel=k;const a=(cells[k]||[]).slice().sort((x,y)=>er(y)-er(x));const[g,r]=k.split("|");
+  $("detail").hidden=false;$("det-h").textContent=`${r} × ${g}（${a.length}件、ER順）`;
+  $("detTable").innerHTML="<tr><th>アカウント</th><th>日付</th><th>形式</th><th>内容</th><th style='text-align:right'>ER</th></tr>"+
+    a.map(p=>`<tr><td>${esc(p.account||"")}</td><td>${esc(p.date||"")}</td><td>${esc(p.format||"")}</td><td>${esc(p.caption||"")}</td><td class="n">${pct(er(p))}</td></tr>`).join("");
+}
+function pick(e){const t=e.target.closest("[data-k]");if(!t)return;sel=t.dataset.k;render();$("detail").scrollIntoView({behavior:"smooth",block:"nearest"})}
+["rank","heat"].forEach(id=>{$(id).addEventListener("click",pick);$(id).addEventListener("keydown",e=>{if(e.key==="Enter")pick(e)})});
+$("fmt").onchange=render;$("minN").onchange=render;
+$("run").onclick=()=>{$("sampleTag").hidden=true;sel=null;$("detail").hidden=true;analyze()};
+$("loadSample").onclick=()=>{const[a,b]=sample();$("othersCsv").value=a;$("mineCsv").value=b;$("sampleTag").hidden=false;sel=null;$("detail").hidden=true;analyze()};
+$("copyTpl").onclick=async()=>{try{await navigator.clipboard.writeText(HEAD+"\n");$("msg").textContent="見出し行をコピーしました。"}catch{$("msg").textContent="コピーできませんでした。次の行を手動でコピーしてください: "+HEAD}};
+function readFile(inp,ta){$(inp).onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{$(ta).value=rd.result;$("msg").textContent=`${f.name} を読み込みました。「分析する」を押してください。`};rd.readAsText(f)}}
+readFile("othersFile","othersCsv");readFile("mineFile","mineCsv");
+$("loadSample").click();
+</script>
